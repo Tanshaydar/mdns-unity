@@ -1,5 +1,4 @@
 ﻿using System;
-using Makaretu.Dns.Resolving;
 
 namespace Makaretu.Dns
 {
@@ -41,7 +40,7 @@ namespace Makaretu.Dns
         /// <value>
         ///   Is used to answer questions.
         /// </value>
-        public NameServer NameServer { get; }
+        public Resolving.NameServer NameServer { get; }
 
         /// <summary>
         ///   Raised when a DNS-SD response is received.

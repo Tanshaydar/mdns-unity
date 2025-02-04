@@ -4,10 +4,8 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
 
 namespace Makaretu.Dns
 {
@@ -30,7 +28,6 @@ namespace Makaretu.Dns
         private const int maxDatagramSize = Message.MaxLength;
 
         private static readonly TimeSpan maxLegacyUnicastTTL = TimeSpan.FromSeconds(10);
-        private static readonly ILog log = LogManager.GetLogger(typeof(MulticastService));
 
         private List<NetworkInterface> knownNics = new List<NetworkInterface>();
         private int maxPacketSize;
@@ -281,17 +278,10 @@ namespace Makaretu.Dns
             QueryReceived = null;
             AnswerReceived = null;
             NetworkInterfaceDiscovered = null;
-#if NETSTANDARD1_1_OR_GREATER || NETCOREAPP1_0_OR_GREATER || NET471_OR_GREATER
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (UnityEngine.Application.platform == UnityEngine.RuntimePlatform.WindowsPlayer || UnityEngine.Application.platform == UnityEngine.RuntimePlatform.WindowsEditor)
             {
                 NetworkChange.NetworkAddressChanged -= OnNetworkAddressChanged;
             }
-#else
-            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
-            {
-                NetworkChange.NetworkAddressChanged -= OnNetworkAddressChanged;
-            }
-#endif
             // Stop current UDP listener
             client?.Dispose();
             client = null;
@@ -301,7 +291,7 @@ namespace Makaretu.Dns
 
         private void FindNetworkInterfaces()
         {
-            log.Debug("Finding network interfaces");
+            UnityEngine.Debug.Log("Finding network interfaces");
 
             try
             {
@@ -314,20 +304,14 @@ namespace Makaretu.Dns
                 {
                     oldNics.Add(nic);
 
-                    if (log.IsDebugEnabled)
-                    {
-                        log.Debug($"Removed nic '{nic.Name}'.");
-                    }
+                    UnityEngine.Debug.LogFormat($"Removed nic '{nic.Name}'.");
                 }
 
                 foreach (var nic in currentNics.Where(nic => !knownNics.Any(k => k.Id == nic.Id)))
                 {
                     newNics.Add(nic);
 
-                    if (log.IsDebugEnabled)
-                    {
-                        log.Debug($"Found nic '{nic.Name}'.");
-                    }
+                    UnityEngine.Debug.LogFormat($"Found nic '{nic.Name}'.");
                 }
 
                 knownNics = currentNics;
@@ -356,23 +340,14 @@ namespace Makaretu.Dns
                 // so no event). Rebinding fixes this.
                 //
                 // Do magic only on Windows.
-#if NETSTANDARD1_1_OR_GREATER || NETCOREAPP1_0_OR_GREATER || NET471_OR_GREATER
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                if (UnityEngine.Application.platform == UnityEngine.RuntimePlatform.WindowsPlayer || UnityEngine.Application.platform == UnityEngine.RuntimePlatform.WindowsEditor)
                 {
                     NetworkChange.NetworkAddressChanged -= OnNetworkAddressChanged;
-                    NetworkChange.NetworkAddressChanged += OnNetworkAddressChanged;
                 }
-#else
-                if (Environment.OSVersion.Platform == PlatformID.Win32NT)
-                {
-                    NetworkChange.NetworkAddressChanged -= OnNetworkAddressChanged;
-                    NetworkChange.NetworkAddressChanged += OnNetworkAddressChanged;
-                }
-#endif
             }
             catch (Exception e)
             {
-                log.Error("FindNics failed", e);
+                UnityEngine.Debug.LogErrorFormat("FindNics failed", e);
             }
         }
 
@@ -715,7 +690,7 @@ namespace Makaretu.Dns
             }
             catch (Exception e)
             {
-                log.Warn("Received malformed message", e);
+                UnityEngine.Debug.LogWarningFormat("Received malformed message", e);
                 MalformedMessage?.Invoke(this, result.Buffer);
                 return; // eat the exception
             }
@@ -731,16 +706,16 @@ namespace Makaretu.Dns
             {
                 if (msg.IsQuery && msg.Questions.Count > 0)
                 {
-                    QueryReceived?.Invoke(this, new MessageEventArgs { Message = msg, RemoteEndPoint = result.RemoteEndPoint });
+                    UnityThread.executeInLateUpdate(()=>QueryReceived?.Invoke(this, new MessageEventArgs { Message = msg, RemoteEndPoint = result.RemoteEndPoint }));
                 }
                 else if (msg.IsResponse && msg.Answers.Count > 0)
                 {
-                    AnswerReceived?.Invoke(this, new MessageEventArgs { Message = msg, RemoteEndPoint = result.RemoteEndPoint });
+                    UnityThread.executeInLateUpdate(() => AnswerReceived?.Invoke(this, new MessageEventArgs { Message = msg, RemoteEndPoint = result.RemoteEndPoint }));
                 }
             }
             catch (Exception e)
             {
-                log.Error("Receive handler failed", e);
+                UnityEngine.Debug.LogError("Receive handler failed: " + e.ToString());
                 // eat the exception
             }
         }

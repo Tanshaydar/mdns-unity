@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Common.Logging;
 using Makaretu.Dns.Resolving;
 
 namespace Makaretu.Dns
@@ -14,7 +13,6 @@ namespace Makaretu.Dns
     /// <seealso href="https://tools.ietf.org/html/rfc6763">RFC 6763 DNS-Based Service Discovery</seealso>
     public class ServiceDiscovery : IServiceDiscovery
     {
-        private static readonly ILog log = LogManager.GetLogger(typeof(ServiceDiscovery));
         private static readonly DomainName LocalDomain = new DomainName("local");
         private static readonly DomainName SubName = new DomainName("_sub");
 
@@ -379,14 +377,7 @@ namespace Makaretu.Dns
         private void OnAnswer(object sender, MessageEventArgs e)
         {
             var msg = e.Message;
-            if (log.IsDebugEnabled)
-            {
-                log.Debug($"Answer from {e.RemoteEndPoint}");
-            }
-            if (log.IsTraceEnabled)
-            {
-                log.Trace(msg);
-            }
+            UnityEngine.Debug.Log($"Answer from {e.RemoteEndPoint}");
 
             // Any DNS-SD answers?
             var sd = msg.Answers
@@ -425,14 +416,7 @@ namespace Makaretu.Dns
         {
             var request = e.Message;
 
-            if (log.IsDebugEnabled)
-            {
-                log.Debug($"Query from {e.RemoteEndPoint}");
-            }
-            if (log.IsTraceEnabled)
-            {
-                log.Trace(request);
-            }
+            UnityEngine.Debug.Log($"Query from {e.RemoteEndPoint}");
 
             // Determine if this query is requesting a unicast response
             // and normalise the Class.
@@ -480,14 +464,7 @@ namespace Makaretu.Dns
                 Mdns.SendAnswer(response, e, !QU);
             }
 
-            if (log.IsDebugEnabled)
-            {
-                log.Debug($"Sending answer");
-            }
-            if (log.IsTraceEnabled)
-            {
-                log.Trace(response);
-            }
+            UnityEngine.Debug.Log($"Sending answer");
             //Console.WriteLine($"Response time {(DateTime.Now - request.CreationTime).TotalMilliseconds}ms");
         }
 
